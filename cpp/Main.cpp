@@ -1,5 +1,8 @@
 #include <iostream>
 #include <climits>
+#include <ctime>
+#include <sys/time.h>
+#include <omp.h>
 #include "dijkstra.cpp"
 
 using namespace std;
@@ -54,6 +57,12 @@ void imprimirCamino(Basurero* basurero) {
 int main() {
     const int cantidadBasureros = 9;
 
+    struct timeval inicio, fin;
+    clock_t inicio_cpu, fin_cpu;
+
+    gettimeofday(&inicio, NULL);
+    inicio_cpu = clock();
+
     int matrizAdyacencia[cantidadBasureros][cantidadBasureros] = {
         {0, 4, 0, 0, 0, 0, 0, 8, 0},
         {4, 0, 8, 0, 0, 0, 0, 11, 0},
@@ -98,6 +107,7 @@ int main() {
                                        longitudes[i], latitudes[i]);
     }
 
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < cantidadBasureros; i++) {
         for (int j = 0; j < cantidadBasureros; j++) {
             int costo = matrizAdyacencia[i][j];
@@ -137,6 +147,33 @@ int main() {
 
         actual = actual->basurero_sig;
     }
+
+    fin_cpu = clock();
+    gettimeofday(&fin, NULL);
+
+    double tiempo_real =
+        (fin.tv_sec - inicio.tv_sec) +
+        (fin.tv_usec - inicio.tv_usec) / 1000000.0;
+
+    double tiempo_cpu =
+        (double)(fin_cpu - inicio_cpu) / CLOCKS_PER_SEC;
+
+    cout << "\nTiempo real empleado: "
+         << tiempo_real
+         << " segundos" << endl;
+
+    cout << "Tiempo de CPU empleado: "
+         << tiempo_cpu
+         << " segundos" << endl;
+
+    double porcentaje_cpu = 0.0;
+    if (tiempo_real > 0.0) {
+        porcentaje_cpu = (tiempo_cpu / tiempo_real) * 100.0;
+    }
+
+    cout << "Porcentaje de uso de CPU: "
+         << porcentaje_cpu
+         << "%" << endl;
 
     liberarGrafo(grafo);
     return 0;
